@@ -1,14 +1,11 @@
 import asyncio
 import concurrent.futures
 import hashlib
-import json
-import os
 from datetime import datetime as dt
 
 import click
 import requests
 from bs4 import BeautifulSoup
-from elasticsearch import Elasticsearch
 from elasticsearch.exceptions import NotFoundError
 
 from config import Config, ES, EP
@@ -36,7 +33,7 @@ def parse_item_data(item):
             sku = links[2]['href'].split('=')[-1][:-1]
             store_name = 'Target'
     except:
-        print('Item Error. Unable to parse item data')
+        click.echo('Item Error. Unable to parse item data')
         return
 
     data = {
@@ -60,7 +57,7 @@ def parse_item_data(item):
     try:
         stores = inventory_soup.main.find("div", {"class": "table"})
     except AttributeError:
-        print('Unable to parse {}'.format(url))
+        click.echo('Unable to parse {}'.format(url))
         return
 
     stores = stores.find_all("div", {"class": "table__row"})[1:]
@@ -86,10 +83,14 @@ def parse_item_data(item):
         if 'Out of Stock' in quantity:
             return
 
-        price = store.find("span", {"class": "price-formatted"}).text
-        price = float(price[1:])
-        if price > (original_price * minimum_percent_off):
-            continue
+        try:
+            price = store.find("span", {"class": "price-formatted"}).text
+            price = float(price[1:])
+            if price > (original_price * minimum_percent_off):
+                continue
+        except AttributeError:
+            click.echo('Unable to find pricing data for {}'.format(url))
+            return
 
         try:
             product_doc = ES.get(index=Config.ES_INDEX, doc_type='default', id=id)['_source']
@@ -99,7 +100,7 @@ def parse_item_data(item):
                 product_doc['sales_price'] = price
                 product_doc['last_updated'] = dt.now()
         except NotFoundError:
-            print("NEW! {} found at {} for".format(item_name, address, str(price)))
+            click.echo("NEW! {} found at {} for".format(item_name, address, str(price)))
             product_doc = {
                 "created_at": dt.now(),
                 "store": store_name,
@@ -118,7 +119,7 @@ def parse_item_data(item):
                           "doc_as_upsert": True
                       })
         except Exception as e:
-            print(str(e))
+            click.echo(str(e))
 
 
 async def iter_items(items):
@@ -134,32 +135,27 @@ async def iter_items(items):
         await asyncio.gather(*futures)
 
 
-def get_deals(starting_page=1):
+def get_deals(page=1):
     brand = BRAND_MAPPINGS.get('Lego', '')
     category = ''
     Config.setup(brand=brand['index_name'])
-    base_url = 'deals/?sort=trending{}{}&pg='.format(brand['url'], category)
-    current_page = int(starting_page)
+    base_url = 'deals/?sort=trending{}{}&pg={}'.format(brand['url'], category, page)
+    url = EP.format(base_url)
+    click.echo('Parsing page {}'.format(page))
 
-    while current_page <= 10:
-        paged_base_url = '{}{}'.format(base_url, current_page)
-        url = EP.format(paged_base_url)
-        print('Parsing page {}'.format(current_page))
+    soup_data = requests.get(url, proxies=Config.PROXY).text
 
-        soup_data = requests.get(url, proxies=Config.PROXY).text
+    try:
+        soup = BeautifulSoup(soup_data, 'html.parser')
+        items = soup.main.find_all("div", {"class": "item-list__item--deal"})
+    except AttributeError:
+        click.echo("Refresh your public IP")
+        click.echo("Died while parsing page {}".format(current_page))
+        return
 
-        try:
-            soup = BeautifulSoup(soup_data, 'html.parser')
-            items = soup.main.find_all("div", {"class": "item-list__item--deal"})
-        except AttributeError:
-            print("Refresh your public IP")
-            print("Died while parsing page {}".format(current_page))
-            return
-
-        items = [item for item in items if item != '\n']
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(iter_items(items))
-        current_page += 1
+    items = [item for item in items if item != '\n']
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(iter_items(items))
 
 
 if __name__ == '__main__':

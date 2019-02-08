@@ -27,9 +27,9 @@ def setup(proxy, zip_code):
 
 
 @cli.command()
-@click.option('--starting_page', default=1, help='Page to start on')
-def deals(starting_page):
-    get_deals(starting_page)
+@click.option('--page', default=1, help='Page to start on')
+def deals(page):
+    get_deals(page)
 
 
 if __name__ == '__main__':

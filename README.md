@@ -12,6 +12,10 @@ Pulls local inventory from the trending deals by category and/or Brand to get a 
 - `python cli.py deals` to start scanning for deals
 
 
+### Tips
+* Retrieve a new proxy for each request, it seems like you get stale results after batch submission
+
+
 ### Todos
 
  - Ability to specify a brand and or category
