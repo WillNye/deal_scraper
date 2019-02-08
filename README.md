@@ -1,5 +1,5 @@
 # Deal Scraper
-### NOTE - You need a proxy or your going to get IP Banned. I'm currently using https://myiphide.com/
+### NOTE - You need a proxy or you will get IP Banned. I've had success with https://myiphide.com/
 
 Pulls local inventory from the trending deals by category and/or Brand to get a single, easy to use page with price drop detection and discount thresholds
 
