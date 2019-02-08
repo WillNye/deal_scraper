@@ -1,0 +1,8 @@
+beautifulsoup4==4.7.1
+bs4==0.0.1
+Click==7.0
+elasticsearch==5.4.0
+elasticsearch-dsl==5.3.0
+lxml==4.3.0
+requests==2.13.0
+selenium==3.141.0

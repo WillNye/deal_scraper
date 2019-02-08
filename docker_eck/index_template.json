@@ -1,0 +1,50 @@
+{
+  "order": 1,
+  "index_patterns": [
+    "prod*"
+  ],
+  "settings": {
+    "index": {
+      "max_result_window": "10000",
+      "number_of_replicas": "1"
+    }
+  },
+  "mappings": {
+    "default": {
+      "dynamic": false,
+      "properties": {
+        "created_at": {
+          "type": "date"
+        },
+        "last_seen": {
+          "type": "date"
+        },
+        "last_updated": {
+          "type": "date"
+        },
+        "store": {
+          "type": "text"
+        },
+        "address": {
+          "type": "text"
+        },
+        "name": {
+          "type": "text"
+        },
+        "sku": {
+          "type": "text"
+        },
+        "sales_price": {
+          "type": "float"
+        },
+        "original_price": {
+          "type": "float"
+        },
+        "quantity": {
+          "type": "text"
+        }
+      }
+    }
+  },
+  "aliases": {}
+}
