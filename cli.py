@@ -3,6 +3,7 @@ import os
 
 import click
 
+from config import FILTER_MAPPINGS
 from deals import get_deals
 
 
@@ -27,9 +28,10 @@ def setup(proxy, zip_code):
 
 
 @cli.command()
+@click.option('--filter', 'filter_mapping', type=click.Choice(sorted(FILTER_MAPPINGS.keys())))
 @click.option('--page', default=1, help='Page to start on')
-def deals(page):
-    get_deals(page)
+def deals(filter_mapping, page):
+    get_deals(FILTER_MAPPINGS[filter_mapping], page)
 
 
 if __name__ == '__main__':
