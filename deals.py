@@ -13,10 +13,6 @@ from config import Config, ES, EP
 INDEX = 'product'
 proxy = '127.0.0.1:21218'
 
-BRAND_MAPPINGS = {
-    'Lego': {'url': '&brands%5B56%5D=56', 'index_name': 'lego'}
-}
-
 
 def parse_item_data(item):
     minimum_percent_off = 25
@@ -56,15 +52,14 @@ def parse_item_data(item):
 
     try:
         stores = inventory_soup.main.find("div", {"class": "table"})
-    except AttributeError:
+        stores = stores.find_all("div", {"class": "table__row"})[1:]
+
+        original_price = inventory_soup.main.find_all("div", {"class": "item-overview__meta-item"})[0]
+        original_price = original_price.text.split(' ')[-2]
+        original_price = float(original_price[1:])
+    except Exception:
         click.echo('Unable to parse {}'.format(url))
         return
-
-    stores = stores.find_all("div", {"class": "table__row"})[1:]
-
-    original_price = inventory_soup.main.find_all("div", {"class": "item-overview__meta-item"})[0]
-    original_price = original_price.text.split(' ')[-2]
-    original_price = float(original_price[1:])
 
     for store in stores:
         if store_name == 'Walmart':
@@ -100,7 +95,7 @@ def parse_item_data(item):
                 product_doc['sales_price'] = price
                 product_doc['last_updated'] = dt.now()
         except NotFoundError:
-            click.echo("NEW! {} found at {} for".format(item_name, address, str(price)))
+            click.echo("NEW! {} found at {} for ${}".format(item_name, address, str(price)))
             product_doc = {
                 "created_at": dt.now(),
                 "store": store_name,
@@ -135,11 +130,10 @@ async def iter_items(items):
         await asyncio.gather(*futures)
 
 
-def get_deals(page=1):
-    brand = BRAND_MAPPINGS.get('Lego', '')
+def get_deals(filter_mapping, page=1):
     category = ''
-    Config.setup(brand=brand['index_name'])
-    base_url = 'deals/?sort=trending{}{}&pg={}'.format(brand['url'], category, page)
+    Config.setup(filter_mapping['index_name'])
+    base_url = 'deals/?sort=trending{}{}&pg={}'.format(filter_mapping['url'], category, page)
     url = EP.format(base_url)
     click.echo('Parsing page {}'.format(page))
 
@@ -150,7 +144,7 @@ def get_deals(page=1):
         items = soup.main.find_all("div", {"class": "item-list__item--deal"})
     except AttributeError:
         click.echo("Refresh your public IP")
-        click.echo("Died while parsing page {}".format(current_page))
+        click.echo("Died while parsing page {}".format(page))
         return
 
     items = [item for item in items if item != '\n']
