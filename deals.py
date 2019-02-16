@@ -89,15 +89,15 @@ def parse_item_data(item):
 
         try:
             product_doc = ES.get(index=Config.ES_INDEX, doc_type='default', id=id)['_source']
-            product_doc['last_seen'] = dt.now()
+            product_doc['last_seen'] = dt.utcnow()
 
             if product_doc['sales_price'] > price:
                 product_doc['sales_price'] = price
-                product_doc['last_updated'] = dt.now()
+                product_doc['last_updated'] = dt.utcnow()
         except NotFoundError:
             click.echo("NEW! {} found at {} for ${}".format(item_name, address, str(price)))
             product_doc = {
-                "created_at": dt.now(),
+                "created_at": dt.utcnow(),
                 "store": store_name,
                 "address": address,
                 "name": item_name,
