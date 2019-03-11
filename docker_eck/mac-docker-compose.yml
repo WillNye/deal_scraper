@@ -1,0 +1,55 @@
+version: '3'
+services:
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:6.4.1
+    container_name: elasticsearch
+    environment:
+    - discovery.type=single-node
+    ports:
+    - "9200:9200"
+    - "9300:9300"
+    - "9400:9400"
+    networks:
+      internal_net:
+    volumes:
+    - esData:/usr/share/elasticsearch/data
+
+  cerebro:
+    image: polinux/cerebro
+    container_name: cerebro
+    environment:
+      - "ES_ADDRESS=http://elasticsearch"
+      - "ES_PORT=9200"
+      - "ES_NAME=docker-cluster"
+    depends_on:
+      - elasticsearch
+    ports:
+        - "9000:9000"
+    networks:
+      internal_net:
+    volumes:
+      - cerebroConf:/opt/cerebro/conf
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:6.4.2
+    container_name: kibana
+    environment:
+      - "ELASTICSEARCH_URL=http://elasticsearch:9200"
+    depends_on:
+      - elasticsearch
+    ports:
+      - "5601:5601"
+    networks:
+      - internal_net
+
+networks:
+  internal_net:
+    external: false
+
+volumes:
+  esData:
+    external: true
+  cerebroConf:
+    external: true
+
