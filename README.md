@@ -9,17 +9,11 @@ Pulls local inventory from the trending deals by category and/or Brand to get a 
 - Go to docker_eck and follow the steps to getting the backend and UI running to display the deal
 - Run `pip install -r requirements.txt`
 - Setup your host with `python cli.py setup --proxy YourProxyIPandPortGoesHere --zip_code YourZip`
-- `python cli.py deals` to start scanning for deals
+- `python cli.py deals --filter Lego --page 1` to start scanning for deals
 
 
 ### Tips
 * Retrieve a new proxy for each request, it seems like you get stale results after batch submission
-
-
-### Todos
-
- - Ability to specify a brand and or category
-
  
 License
 ----
