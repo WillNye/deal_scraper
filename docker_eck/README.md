@@ -16,13 +16,18 @@ docker volume create esData
 docker volume create cerebroConf
 
 # Runs everything on host machine
-docker-compose up -d
+./run_as_${HOST_OS}.sh  # host os must be mac or ubuntu
 
 ```
 
 After a few minutes you should be able to open this page:
 
+##### For Ubuntu
 http://127.0.0.1:9000/#/overview?host=http:%2F%2Flocalhost:9200
+
+##### For Mac
+http://127.0.0.1:9000/#/overview?host=http:%2F%2Felasticsearch:9200
+
 
 1. In the top, left hand corner of the page click "More" and select "Index Templates"
 2. On the right side of the page there will be and area to create template.
