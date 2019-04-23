@@ -6,7 +6,6 @@ from datetime import datetime as dt
 import click
 import requests
 from bs4 import BeautifulSoup
-from elasticsearch.exceptions import NotFoundError
 
 from config import Config, ES, EP
 
@@ -14,8 +13,13 @@ INDEX = 'product'
 proxy = '127.0.0.1:21218'
 
 
+def delete_document(doc_id):
+    if ES.exists(index=Config.ES_INDEX, doc_type='default', id=doc_id):
+        ES.delete(index=Config.ES_INDEX, doc_type='default', id=doc_id)
+
+
 def parse_item_data(item):
-    minimum_percent_off = 25
+    minimum_percent_off = 20
     minimum_percent_off = (100-minimum_percent_off)/100
 
     try:
@@ -71,33 +75,36 @@ def parse_item_data(item):
             click.echo('Currently, only Walmart and Target are supported')
             return
 
-        id = hashlib.sha256(str.encode('{} {} {}'.format(store_name, address.replace(" ", ""), sku))).hexdigest()
+        doc_id = hashlib.sha256(str.encode('{} {} {}'.format(store_name, address.replace(" ", ""), sku))).hexdigest()
 
         quantity = store.find("div", {"class": "inventory-checker-table__availability"}).text
         quantity = quantity.replace("\n", "")
-        if 'Out of Stock' in quantity:
+
+        if 'Out of Stock' in quantity or 'Limited Stock' in quantity:
+            delete_document(doc_id)
             return
 
         try:
             price = store.find("span", {"class": "price-formatted"}).text
             price = float(price[1:])
             if price > (original_price * minimum_percent_off):
-                continue
+                delete_document(doc_id)
+                return
         except AttributeError:
             click.echo('Unable to find pricing data for {}'.format(url))
             return
 
-        try:
-            product_doc = ES.get(index=Config.ES_INDEX, doc_type='default', id=id)['_source']
+        if ES.exists(index=Config.ES_INDEX, doc_type='default', id=doc_id):
+            product_doc = ES.get(index=Config.ES_INDEX, doc_type='default', id=doc_id)['_source']
+            product_doc['quantity'] = quantity
             product_doc['last_seen'] = dt.utcnow()
-
-            if product_doc['sales_price'] > price:
-                product_doc['sales_price'] = price
-                product_doc['last_updated'] = dt.utcnow()
-        except NotFoundError:
+            product_doc['sales_price'] = price
+            product_doc['last_updated'] = dt.utcnow()
+        else:
             click.echo("NEW! {} found at {} for ${}".format(item_name, address, str(price)))
             product_doc = {
                 "created_at": dt.utcnow(),
+                "last_seen": dt.utcnow(),
                 "store": store_name,
                 "address": address,
                 "name": item_name,
@@ -108,7 +115,7 @@ def parse_item_data(item):
             }
 
         try:
-            ES.update(index=Config.ES_INDEX, doc_type='default', id=id,
+            ES.update(index=Config.ES_INDEX, doc_type='default', id=doc_id,
                       body={
                           "doc": product_doc,
                           "doc_as_upsert": True
@@ -150,7 +157,3 @@ def get_deals(filter_mapping, page=1):
     items = [item for item in items if item != '\n']
     loop = asyncio.get_event_loop()
     loop.run_until_complete(iter_items(items))
-
-
-if __name__ == '__main__':
-    get_deals()
