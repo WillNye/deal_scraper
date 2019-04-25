@@ -65,9 +65,8 @@ def parse_item_data(item):
 
         original_price = inventory_soup.main.find_all("div", {"class": "item-overview__meta-item"})[0]
         original_price = original_price.text.split(' ')[-2]
-        original_price = float(original_price[1:])
-    except Exception as e:
-        click.echo(str(e))
+        original_price = float(original_price[1:].replace(',', ''))
+    except AttributeError:
         click.echo('Unable to parse {}'.format(url))
         return
 
@@ -90,7 +89,7 @@ def parse_item_data(item):
 
         try:
             price = store.find("span", {"class": "price-formatted"}).text
-            price = float(price[1:])
+            price = float(price[1:].replace(',', ''))
             if price > (original_price * minimum_percent_off):
                 delete_document(doc_id)
                 continue
