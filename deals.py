@@ -65,7 +65,12 @@ def parse_item_data(item):
 
         original_price = inventory_soup.main.find_all("div", {"class": "item-overview__meta-item"})[0]
         original_price = original_price.text.split(' ')[-2]
+
+        if 'N/A' in original_price:
+            return
+
         original_price = float(original_price[1:].replace(',', ''))
+
     except AttributeError:
         click.echo('Unable to parse {}'.format(url))
         return
