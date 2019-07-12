@@ -23,7 +23,7 @@ def setup(proxy, zip_code):
     with open(os.path.join(base_dir, 'config.json'), 'w') as config:
         config.write(json.dumps({
             "proxy": proxy,
-            'zipcode': zip_code
+            'zip_code': zip_code
         }, indent=4))
 
 

@@ -10,11 +10,11 @@ from bs4 import BeautifulSoup
 from config import Config, ES, EP
 
 INDEX = 'product'
-proxy = '127.0.0.1:21218'
 
 
-def delete_document(doc_id):
+def delete_document(doc_id, item_name, address):
     if ES.exists(index=Config.ES_INDEX, doc_type='default', id=doc_id):
+        click.echo("Discount for {} at {} is on longer available.".format(item_name, address))
         ES.delete(index=Config.ES_INDEX, doc_type='default', id=doc_id)
 
 
@@ -44,7 +44,7 @@ def parse_item_data(item):
         'method': 'sku',
         'sku': sku,
         'upc': None,
-        'zip': '78641',
+        'zip': Config.ZIP_CODE,
         'sort': 'recommended'
     }
 
@@ -89,17 +89,17 @@ def parse_item_data(item):
         quantity = quantity.replace("\n", "")
 
         if 'Out of Stock' in quantity or 'Limited Stock' in quantity:
-            delete_document(doc_id)
+            delete_document(doc_id, item_name, address)
             continue
 
         try:
             price = store.find("span", {"class": "price-formatted"}).text
             price = float(price[1:].replace(',', ''))
             if price > (original_price * minimum_percent_off):
-                delete_document(doc_id)
+                delete_document(doc_id, item_name, address)
                 continue
         except AttributeError:
-            delete_document(doc_id)
+            delete_document(doc_id, item_name, address)
             continue
 
         if ES.exists(index=Config.ES_INDEX, doc_type='default', id=doc_id):
