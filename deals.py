@@ -104,13 +104,29 @@ def parse_item_data(item):
 
         if ES.exists(index=Config.ES_INDEX, doc_type='default', id=doc_id):
             product_doc = ES.get(index=Config.ES_INDEX, doc_type='default', id=doc_id)['_source']
+            es_price = product_doc.get('sales_price')
+            es_quantity = product_doc.get('quantity')
 
-            if product_doc['quantity'] != quantity or product_doc['sales_price'] != price:
+            if es_quantity != quantity or es_price != price:
+                all_changes = product_doc.get('change_log', [])
+                change_log = dict(modified_at=dt.utcnow())
+
+                if es_price != price:
+                    change_log['sales_price'] = dict(original_price=es_price, new_price=price)
+                    click.echo("Price Change! {} at {}. WAS: ${}. NOW: ${}".format(item_name, address,
+                                                                                   es_price, price))
+                    product_doc['sales_price'] = price
+
+                if es_quantity != quantity:
+                    change_log['quantity'] = dict(original_quantity=es_quantity, new_quantity=quantity)
+                    product_doc['quantity'] = quantity
+
+                all_changes.append(change_log)
+                product_doc['change_log'] = all_changes
                 product_doc['last_updated'] = dt.utcnow()
 
-            product_doc['quantity'] = quantity
             product_doc['last_seen'] = dt.utcnow()
-            product_doc['sales_price'] = price
+
         else:
             click.echo("NEW! {} found at {} for ${}".format(item_name, address, str(price)))
             product_doc = {
