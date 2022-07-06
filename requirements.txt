@@ -3,6 +3,6 @@ bs4==0.0.1
 Click==7.0
 elasticsearch==5.4.0
 elasticsearch-dsl==5.3.0
-lxml==4.3.0
+lxml==4.9.1
 requests==2.21.0
 selenium==3.141.0
